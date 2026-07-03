@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Cairo', Tahoma, Arial, sans-serif;
+}
+
+
+/* CLICK FIX: decorative layers must never block buttons */
+.hero-dashboard-card::after,
+.students-hero::after,
+.brand-panel::before,
+.login-page::before,
+.brand-side::before {
+  pointer-events: none !important;
+}
+
+.hero-dashboard-card > *,
+.students-hero > *,
+.dashboard-topbar > *,
+.students-toolbar > *,
+.quick-actions-card > *,
+.attention-card > *,
+.week-card > * {
+  position: relative;
+  z-index: 2;
+}
+
+button,
+.add-student-btn,
+.hero-btn,
+.soft-btn,
+.quick-action,
+.sidebar-nav button,
+.filter-pills button,
+.student-actions button,
+.alert-row button,
+.primary-modal-btn,
+.soft-modal-btn,
+.program-checkboxes button {
+  position: relative;
+  z-index: 20 !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+.modal-backdrop,
+.dashboard-modal-backdrop {
+  z-index: 99999 !important;
+}
+
+.student-modal,
+.dashboard-alerts-modal,
+.message-preview,
+.dashboard-message {
+  z-index: 100000 !important;
+}
+
+button, input, select, textarea { pointer-events: auto !important; }
+
+button, input, select, textarea { pointer-events: auto !important; }
