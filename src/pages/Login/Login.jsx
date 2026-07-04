@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Eye, EyeOff, LockKeyhole, LogIn, Phone } from "lucide-react";
+import { Eye, EyeOff, LockKeyhole, LogIn, Mail } from "lucide-react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../services/firebase";
 import logo from "../../assets/logo.jpeg";
@@ -9,7 +9,7 @@ export default function Login({ onLogin }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
 
-  const [phone, setPhone] = useState("01000000000");
+  const [email, setEmail] = useState("admin@athar.com");
   const [password, setPassword] = useState("12345678");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -23,15 +23,19 @@ export default function Login({ onLogin }) {
     setError("");
     setLoading(true);
 
-  try {
-  const email = `${phone.trim()}@we-yabqa.local`;
-  await signInWithEmailAndPassword(auth, email, password.trim());
-  onLogin();
-} catch (err) {
-  setError("رقم الهاتف أو كلمة المرور غير صحيحة");
-} finally {
-  setLoading(false);
-}
+    try {
+      await signInWithEmailAndPassword(
+        auth,
+        email.trim(),
+        password.trim()
+      );
+
+      onLogin();
+    } catch (err) {
+      setError("البريد الإلكتروني أو كلمة المرور غير صحيحة");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -81,14 +85,14 @@ export default function Login({ onLogin }) {
           <h3>مرحبا بكم</h3>
           <p>سجلي الدخول للمتابعة</p>
 
-          <label>رقم الهاتف</label>
+          <label>البريد الإلكتروني</label>
           <div className="input-box">
-            <Phone size={22} />
+            <Mail size={22} />
             <input
-              type="tel"
-              placeholder="010xxxxxxxx"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              type="email"
+              placeholder="admin@athar.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
 
@@ -111,7 +115,7 @@ export default function Login({ onLogin }) {
           </div>
 
           {error && (
-            <p style={{ color: "red", fontSize: "14px", marginTop: "10px" }}>
+            <p style={{ color: "#c0392b", fontSize: "14px", marginTop: "10px" }}>
               {error}
             </p>
           )}
@@ -137,8 +141,7 @@ export default function Login({ onLogin }) {
           </button>
 
           <div className="rights">جميع الحقوق محفوظة © ويبقى الأثر</div>
-        </div>
-      </section>
+        </div></section>
     </main>
   );
 }
