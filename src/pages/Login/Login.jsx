@@ -24,8 +24,8 @@ export default function Login({ onLogin }) {
     setLoading(true);
 
   try {
-  const email = '${phone}@we-yabqa.local';
-  await signInWithEmailAndPassword(auth, email, password);
+  const email = `${phone.trim()}@we-yabqa.local`;
+  await signInWithEmailAndPassword(auth, email, password.trim());
   onLogin();
 } catch (err) {
   setError("رقم الهاتف أو كلمة المرور غير صحيحة");
