@@ -3,7 +3,7 @@ import {
   Bell, Bot, CalendarDays, Camera, ChevronLeft, ClipboardList, CreditCard,
   FileText, GraduationCap, LayoutDashboard, MessageCircle, Plus, Search,
   Settings, Sparkles, UserRound, Users, BookOpen, Archive, AlertTriangle,
-  WalletCards, X, Gamepad2, CheckCircle2, Clock3, Receipt, Send, Upload, Image as ImageIcon, ShieldCheck, UserPlus, Edit3, Save, Copy, Megaphone, Phone, Mail, Lock, Palette
+  WalletCards, X, Gamepad2, CheckCircle2, Clock3, Receipt, Send, Upload, Image as ImageIcon, ShieldCheck, UserPlus, Edit3, Save, Copy, Megaphone, Phone, Mail, Lock, Palette, LogOut
 } from 'lucide-react';
 import logo from '../../assets/logo.jpeg';
 import './Dashboard.css';
@@ -91,7 +91,7 @@ const teachers = [
 ];
 
 
-export default function Dashboard() {
+export default function Dashboard({onLogout}) {
   const [activePage, setActivePage] = useState('home');
   const [message, setMessage] = useState('');
   const [showAllAlerts, setShowAllAlerts] = useState(false);
@@ -126,6 +126,25 @@ export default function Dashboard() {
             );
           })}
         </nav>
+                    <button
+                    type="button"
+                    className="logout-btn"
+                    onClick={onlogout}
+                   
+                    >
+                    <span className="nav-icon">
+                      <LogOut size={20}/>
+
+                    </span>
+                    <span>
+                      تسجيل الخروج
+                    </span>
+
+
+
+                    </button>
+
+
 
         <div className="ai-mini-card">
           <Sparkles size={22} />

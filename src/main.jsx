@@ -1,42 +1,44 @@
-import React, { useEffect, useState } from "react";
-import { createRoot } from "react-dom/client";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "./services/firebase";
-import Login from "./pages/Login/Login.jsx";
-import Dashboard from "./pages/Dashboard/Dashboard.jsx";
-import "./styles/global.css";
+import React, { useEffect, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+
+import Login from './pages/Login/Login';
+import Dashboard from './pages/Dashboard/Dashboard';
+
+import './styles/global.css';
+
+import { auth } from './services/firebase';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 function App() {
   const [user, setUser] = useState(null);
-  const [checking, setChecking] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      setChecking(false);
+      setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    setUser(null);
-  };
-
-  if (checking) {
-    return (
-      <div style={{ padding: "40px", textAlign: "center", direction: "rtl" }}>
-        جاري التحميل...
-      </div>
-    );
+  if (loading) {
+    return <div>جاري التحميل...</div>;
   }
 
   if (!user) {
-    return <Login onLogin={() => {}} />;
+    return <Login />;
   }
 
-  return <Dashboard user={user} onLogout={handleLogout} />;
+  return (
+    <Dashboard
+      onLogout={() => signOut(auth)}
+    />
+  );
 }
 
-createRoot(document.getElementById("root")).render(<App />);
+createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
