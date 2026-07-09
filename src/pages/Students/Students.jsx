@@ -286,6 +286,28 @@ export default function Students() {
 
 نتمنى نشوفكم قريبًا بإذن الله، ونسعد بعودة ${student.name} للأكاديمية.`;
   }
+   function loginMessage(student) {
+  return `السلام عليكم ورحمة الله وبركاته 🌱
+
+تم إنشاء حساب خاص بكم على منصة أكاديمية ويبقى الأثر.
+
+بيانات الدخول الخاصة بالطالب:
+${student.name}
+
+رابط الدخول:
+https://we-yabqa-alathar.vercel.app
+
+اسم المستخدم:
+${student.parentUsername || student.studentCode || 'غير متوفر'}
+
+كلمة المرور:
+${student.parentPassword || 'غير متوفرة'}
+
+من خلال الحساب يمكنكم متابعة الحضور، الاشتراك، الساعات المتبقية، الخطة، التقارير والتنبيهات.
+
+نسعد بمتابعتكم، ونسأل الله أن يبارك في أبنائنا جميعًا 🤍`;
+}
+
 
   function paymentMessage(student, sub) {
     if (sub.customMessage?.trim()) {
