@@ -195,7 +195,7 @@ export default function Students() {
 
       await addDoc(collection(db, 'students'), {
         ...payload,
-       
+
         status: 'active',
         createdAt: serverTimestamp()
       });
@@ -414,6 +414,12 @@ export default function Students() {
             <div className="student-actions">
               <button type="button" onClick={() => openMessage(student, absenceMessage(student))}>
                 <MessageCircle size={17} /> رسالة غياب
+              </button>
+              <button
+                type="button"
+                onClick={() => openMessage(student, loginMessage(student))}
+              >
+                <MessageCircle size={17} /> بيانات الدخول
               </button>
               <button type="button" onClick={() => openEditModal(student)}>
                 <FilePenLine size={17} /> تعديل
