@@ -524,3 +524,37 @@ button,
 button, input, select, textarea { pointer-events: auto !important; }
 
 button, input, select, textarea { pointer-events: auto !important; }
+
+
+@media (max-width: 768px) {
+  .login-page {
+    display: block !important;
+    min-height: 100vh;
+    padding: 0 !important;
+    overflow-x: hidden;
+  }
+
+  .brand-side {
+    min-height: 38vh !important;
+    padding: 28px 18px !important;
+  }
+
+  .brand-side h1 {
+    font-size: 44px !important;
+    line-height: 1.1 !important;
+  }
+
+  .brand-side h2 {
+    font-size: 24px !important;
+  }
+
+  .brand-side p {
+    font-size: 18px !important;
+  }
+
+  .login-card,
+  .login-form-card {
+    margin: -34px 14px 20px !important;
+    border-radius: 30px !important;
+  }
+}
