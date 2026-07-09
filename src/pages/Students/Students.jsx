@@ -522,42 +522,73 @@ export default function Students() {
           </div>
         </div>
       )}
-
       {messageModal && (
-        <div className="message-preview">
-          <button type="button" onClick={() => setMessageModal(null)}><X size={18} /></button>
-          <h3>تعديل رسالة الواتساب</h3>
+  <div className="message-preview">
+    <button type="button" onClick={() => setMessageModal(null)}>
+      <X size={18} />
+    </button>
 
-          <textarea
-            value={messageModal.text}
-            onChange={(e) => setMessageModal({ ...messageModal, text: e.target.value })}
-            style={{
-              width: '100%',
-              minHeight: '170px',
-              borderRadius: '16px',
-              border: '1px solid #eadcc4',
-              padding: '14px',
-              fontFamily: 'inherit',
-              fontWeight: 700,
-              lineHeight: 1.8,
-              resize: 'vertical',
-              marginBottom: '12px'
-            }}
-          />
+    <h3>تعديل رسالة الواتساب</h3>
 
-          <div>
-            <button type="button" className="primary-modal-btn" onClick={() => navigator.clipboard.writeText(messageModal.text)}>
-              نسخ الرسالة
-            </button>
-            <button type="button" className="soft-modal-btn" onClick={sendWhatsApp}>
-              فتح واتساب
-            </button>
-          </div>
-        </div>
-      )}
+    <textarea
+      value={messageModal.text}
+      onChange={(e) =>
+        setMessageModal({ ...messageModal, text: e.target.value })
+      }
+      style={{
+        width: '100%',
+        minHeight: '160px',
+        borderRadius: '16px',
+        border: '1px solid #eadcc4',
+        padding: '14px',
+        fontFamily: 'inherit',
+        fontWeight: 700,
+        lineHeight: 1.8,
+        resize: 'vertical',
+        marginBottom: '12px'
+      }}
+    />
+
+    <div>
+      <button
+        type="button"
+        className="primary-modal-btn"
+        onClick={() => {
+          navigator.clipboard.writeText(messageModal.text);
+          alert('تم نسخ الرسالة');
+        }}
+      >
+        نسخ الرسالة
+      </button>
+
+      <button
+        type="button"
+        className="soft-modal-btn"
+        onClick={() => {
+          const phone = messageModal.phones?.[0]?.replace(/[^\d]/g, '');
+
+          if (!phone) {
+            alert('لا يوجد رقم واتساب');
+            return;
+          }
+
+          const url = `https://wa.me/${phone}?text=${encodeURIComponent(messageModal.text)}`;
+          window.open(url, '_blank');
+        }}
+      >
+        فتح واتساب
+      </button>
     </div>
-  );
+  </div>
+)}
+</div>
+);
 }
+      
+ 
+   
+
+     
 
 function SummaryCard({ icon: Icon, label, value }) {
   return (
