@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Bell, Bot, CalendarDays, Camera, ChevronLeft, ClipboardList, CreditCard,
   FileText, GraduationCap, LayoutDashboard, MessageCircle, Plus, Search,
@@ -11,6 +11,8 @@ import Students from '../Students/Students.jsx';
 import Plans from '../Plans/Plans.jsx';
 import Programs from '../Programs/Programs.jsx';
 import Activities from '../Activities/Activities.jsx';
+import { collection, onSnapshot } from "firebase/firestore";
+import { db } from "../../services/firebase";
 
 const navItems = [
   { id: 'home', label: 'الرئيسية', icon: LayoutDashboard },
@@ -26,12 +28,7 @@ const navItems = [
   { id: 'settings', label: 'الإعدادات', icon: Settings },
 ];
 
-const stats = [
-  { label: 'الأطفال النشطين', value: '126', icon: Users, tone: 'green' },
-  { label: 'البرامج النشطة', value: '8', icon: BookOpen, tone: 'gold' },
-  { label: 'غياب اليوم', value: '5', icon: AlertTriangle, tone: 'red' },
-  { label: 'تجديدات مطلوبة', value: '9', icon: WalletCards, tone: 'blue' },
-];
+
 
 const alerts = [
   {
@@ -91,10 +88,34 @@ const teachers = [
 ];
 
 
-export default function Dashboard({onLogout}) {
+export default function Dashboard({ onLogout }) {
   const [activePage, setActivePage] = useState('home');
   const [message, setMessage] = useState('');
   const [showAllAlerts, setShowAllAlerts] = useState(false);
+  const [students, setStudents] = useState([]);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "students"), (snapshot) => {
+      setStudents(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const activeStudents = students.filter((s) => s.status === "active").length;
+
+  const paymentNeeded = students.reduce((total, student) => {
+    return total + (student.subscriptions || []).filter((sub) => {
+      return Number(sub.usedUnits || 0) >= Number(sub.unitLimit || 0);
+    }).length;
+  }, 0);
+
+  const stats = [
+    { label: "الأطفال النشطين", value: activeStudents, icon: Users, tone: "green" },
+    { label: "البرامج النشطة", value: "—", icon: BookOpen, tone: "gold" },
+    { label: "غياب اليوم", value: "—", icon: AlertTriangle, tone: "red" },
+    { label: "تجديدات مطلوبة", value: paymentNeeded, icon: WalletCards, tone: "blue" },
+  ];
 
   function handleAlert(alert) {
     if (alert.message) {
@@ -126,23 +147,23 @@ export default function Dashboard({onLogout}) {
             );
           })}
         </nav>
-                    <button
-                    type="button"
-                    className="logout-btn"
-                    onClick={onLogout}
-                   
-                    >
-                    <span className="nav-icon">
-                      <LogOut size={20}/>
+        <button
+          type="button"
+          className="logout-btn"
+          onClick={onLogout}
 
-                    </span>
-                    <span>
-                      تسجيل الخروج
-                    </span>
+        >
+          <span className="nav-icon">
+            <LogOut size={20} />
+
+          </span>
+          <span>
+            تسجيل الخروج
+          </span>
 
 
 
-                    </button>
+        </button>
 
 
 
@@ -208,34 +229,34 @@ export default function Dashboard({onLogout}) {
           <p>{message}</p>
           <div className="message-actions">
             <button
-  type="button"
-  onClick={() => {
-    navigator.clipboard.writeText(message);
-    alert('تم نسخ الرسالة');
-  }}
->
-  نسخ الرسالة
-</button>
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(message);
+                alert('تم نسخ الرسالة');
+              }}
+            >
+              نسخ الرسالة
+            </button>
 
-<button
-  type="button"
-  onClick={() => {
-    const phone = prompt('اكتبي رقم الواتساب بصيغة دولية مثال: +201012345678');
+            <button
+              type="button"
+              onClick={() => {
+                const phone = prompt('اكتبي رقم الواتساب بصيغة دولية مثال: +201012345678');
 
-    if (!phone) {
-      alert('لم يتم إدخال رقم');
-      return;
-    }
+                if (!phone) {
+                  alert('لم يتم إدخال رقم');
+                  return;
+                }
 
-    const cleanPhone = phone.replace(/[^\d]/g, '');
-    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+                const cleanPhone = phone.replace(/[^\d]/g, '');
+                const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 
-    window.open(url, '_blank');
-  }}
->
-  فتح واتساب
-</button>
-            
+                window.open(url, '_blank');
+              }}
+            >
+              فتح واتساب
+            </button>
+
           </div>
         </div>
       )}
@@ -377,15 +398,15 @@ function AttendancePayments() {
       <section className="module-card span-2">
         <div className="module-toolbar">
           <label>تاريخ اليوم<input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} /></label>
-          <div className="module-actions"><button><CheckCircle2 size={18}/>تحديد الكل حاضر</button><button className="ghost"><Send size={18}/>رسائل الغياب</button></div>
+          <div className="module-actions"><button><CheckCircle2 size={18} />تحديد الكل حاضر</button><button className="ghost"><Send size={18} />رسائل الغياب</button></div>
         </div>
         <div className="smart-table">
           <div className="smart-row table-head"><b>الطفل</b><b>البرنامج</b><b>الحضور</b><b>الدفع</b><b>الحصص</b><b>إجراء</b></div>
-          {attendanceRows.map((row) => <div className="smart-row" key={row.name}><span>{row.name}</span><span>{row.program}</span><span className={`status-pill ${row.status === 'حاضر' ? 'ok' : row.status === 'غائب' ? 'danger' : 'warn'}`}>{row.status}</span><span className={`status-pill ${row.payment === 'ساري' ? 'ok' : 'warn'}`}>{row.payment}</span><span>{row.sessions}</span><button className="mini-btn"><Edit3 size={15}/>تعديل</button></div>)}
+          {attendanceRows.map((row) => <div className="smart-row" key={row.name}><span>{row.name}</span><span>{row.program}</span><span className={`status-pill ${row.status === 'حاضر' ? 'ok' : row.status === 'غائب' ? 'danger' : 'warn'}`}>{row.status}</span><span className={`status-pill ${row.payment === 'ساري' ? 'ok' : 'warn'}`}>{row.payment}</span><span>{row.sessions}</span><button className="mini-btn"><Edit3 size={15} />تعديل</button></div>)}
         </div>
       </section>
       <section className="module-card"><h3>ملخص اليوم</h3><div className="mini-stats"><b>3</b><span>حاضر</span><b>1</b><span>غياب/تأخير</span><b>2</b><span>تنبيهات دفع</span></div></section>
-      <section className="module-card"><h3>رسائل جاهزة</h3><p className="muted-copy">رسالة غياب، تذكير دفع، أو تأكيد حضور يمكن نسخها وإرسالها لولي الأمر.</p><button className="wide-btn"><Copy size={18}/>نسخ قالب الرسالة</button></section>
+      <section className="module-card"><h3>رسائل جاهزة</h3><p className="muted-copy">رسالة غياب، تذكير دفع، أو تأكيد حضور يمكن نسخها وإرسالها لولي الأمر.</p><button className="wide-btn"><Copy size={18} />نسخ قالب الرسالة</button></section>
     </div>
   );
 }
@@ -394,7 +415,7 @@ function ReportsCenter() {
   return (
     <div className="module-grid">
       <ModuleHero icon={FileText} kicker="التقارير" title="تقارير يومية وشهرية جاهزة لولي الأمر" desc="اكتبي تقرير الطفل أو استخدمي ملخص AI من الخطة والحضور والملاحظات." action="إنشاء تقرير" />
-      <section className="module-card span-2"><div className="section-head"><div><h3>تقارير قيد المتابعة</h3><p>مسودات، تقارير جاهزة، وتقارير لم تُرسل بعد.</p></div><button className="soft-btn"><Sparkles size={16}/> توليد تقرير AI</button></div><div className="report-list">{reportRows.map((r)=><article className="report-card" key={r.child}><div><b>{r.child}</b><h4>{r.title}</h4><p>{r.summary}</p></div><span className={`status-pill ${r.status === 'جاهز' ? 'ok' : 'warn'}`}>{r.status}</span><button className="mini-btn"><Send size={15}/>إرسال</button></article>)}</div></section>
+      <section className="module-card span-2"><div className="section-head"><div><h3>تقارير قيد المتابعة</h3><p>مسودات، تقارير جاهزة، وتقارير لم تُرسل بعد.</p></div><button className="soft-btn"><Sparkles size={16} /> توليد تقرير AI</button></div><div className="report-list">{reportRows.map((r) => <article className="report-card" key={r.child}><div><b>{r.child}</b><h4>{r.title}</h4><p>{r.summary}</p></div><span className={`status-pill ${r.status === 'جاهز' ? 'ok' : 'warn'}`}>{r.status}</span><button className="mini-btn"><Send size={15} />إرسال</button></article>)}</div></section>
       <section className="module-card"><h3>قوالب التقارير</h3><div className="template-chips"><span>حفظ قرآن</span><span>كامب</span><span>سلوك</span><span>غياب</span><span>شهري</span></div></section>
       <section className="module-card"><h3>معاينة ولي الأمر</h3><p className="parent-preview">اليوم راجعنا سورة الضحى وتعلمنا خلق الصدق، وشارك الطفل في نشاط لوحة شجرة القيم 🌱</p></section>
     </div>
@@ -405,8 +426,8 @@ function PhotosGallery() {
   return (
     <div className="module-grid">
       <ModuleHero icon={Camera} kicker="الصور" title="ألبومات منظمة حسب اليوم والبرنامج" desc="ارفعي الصور، اربطيها بالخطة أو النشاط، واختاري ما يظهر لولي الأمر." action="رفع صور" />
-      <section className="upload-zone span-2"><Upload size={34}/><h3>اسحبي الصور هنا أو اضغطي للرفع</h3><p>بعد الرفع يمكن اختيار البرنامج، اليوم، والأطفال الظاهرين في الألبوم.</p></section>
-      {photoAlbums.map((album)=><article className="album-card" key={album.title}><div className="album-cover">{album.cover}</div><div><h3>{album.title}</h3><p>{album.count} صورة • {album.date}</p></div><button className="mini-btn"><ImageIcon size={15}/>فتح</button></article>)}
+      <section className="upload-zone span-2"><Upload size={34} /><h3>اسحبي الصور هنا أو اضغطي للرفع</h3><p>بعد الرفع يمكن اختيار البرنامج، اليوم، والأطفال الظاهرين في الألبوم.</p></section>
+      {photoAlbums.map((album) => <article className="album-card" key={album.title}><div className="album-cover">{album.cover}</div><div><h3>{album.title}</h3><p>{album.count} صورة • {album.date}</p></div><button className="mini-btn"><ImageIcon size={15} />فتح</button></article>)}
     </div>
   );
 }
@@ -415,9 +436,9 @@ function TeachersManagement() {
   return (
     <div className="module-grid">
       <ModuleHero icon={GraduationCap} kicker="المعلمات" title="إدارة الفريق والمهام والصلاحيات" desc="تابعي مهام كل معلمة، الحلقات المسؤولة عنها، ونسبة إنجاز الخطة اليومية." action="إضافة معلمة" />
-      <section className="module-card span-2"><div className="teacher-grid">{teachers.map((t)=><article className="teacher-card" key={t.name}><div className="teacher-avatar">{t.name.split(' ')[1]?.[0] || 'م'}</div><div><h3>{t.name}</h3><p>{t.role}</p><span>{t.classes}</span><div className="progress-line"><i style={{width:`${Math.round((t.done/t.tasks)*100)}%`}} /></div><small>{t.done} من {t.tasks} مهمة مكتملة</small></div><button className="mini-btn"><ShieldCheck size={15}/>الصلاحيات</button></article>)}</div></section>
+      <section className="module-card span-2"><div className="teacher-grid">{teachers.map((t) => <article className="teacher-card" key={t.name}><div className="teacher-avatar">{t.name.split(' ')[1]?.[0] || 'م'}</div><div><h3>{t.name}</h3><p>{t.role}</p><span>{t.classes}</span><div className="progress-line"><i style={{ width: `${Math.round((t.done / t.tasks) * 100)}%` }} /></div><small>{t.done} من {t.tasks} مهمة مكتملة</small></div><button className="mini-btn"><ShieldCheck size={15} />الصلاحيات</button></article>)}</div></section>
       <section className="module-card"><h3>صلاحيات جاهزة</h3><div className="template-chips"><span>مدير</span><span>مشرفة</span><span>معلمة</span><span>ولي أمر</span></div></section>
-      <section className="module-card"><h3>دعوة مستخدم</h3><p className="muted-copy">ارسلي رابط دخول مؤقت للمعلمة أو المدير بعد اعتماد النسخة.</p><button className="wide-btn"><UserPlus size={18}/>إنشاء رابط دعوة</button></section>
+      <section className="module-card"><h3>دعوة مستخدم</h3><p className="muted-copy">ارسلي رابط دخول مؤقت للمعلمة أو المدير بعد اعتماد النسخة.</p><button className="wide-btn"><UserPlus size={18} />إنشاء رابط دعوة</button></section>
     </div>
   );
 }
@@ -428,7 +449,7 @@ function AIAssistant({ setMessage }) {
   return (
     <div className="module-grid">
       <ModuleHero icon={Bot} kicker="مساعد AI" title="مساعد تربوي داخل النظام" desc="يكتب خطة يوم، تقرير ولي أمر، رسالة غياب، أو أفكار أنشطة مناسبة للعمر والبرنامج." action="حفظ الاقتراح" onAction={() => setMessage(suggested)} />
-      <section className="ai-workspace span-2"><div className="ai-input"><textarea value={prompt} onChange={(e)=>setPrompt(e.target.value)} /><button onClick={()=>setMessage(suggested)}><Sparkles size={18}/>توليد</button></div><div className="ai-output"><span>اقتراح جاهز</span><p>{suggested}</p><div className="module-actions"><button><Copy size={18}/>نسخ</button><button className="ghost"><ClipboardList size={18}/>إضافة للخطة</button></div></div></section>
+      <section className="ai-workspace span-2"><div className="ai-input"><textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} /><button onClick={() => setMessage(suggested)}><Sparkles size={18} />توليد</button></div><div className="ai-output"><span>اقتراح جاهز</span><p>{suggested}</p><div className="module-actions"><button><Copy size={18} />نسخ</button><button className="ghost"><ClipboardList size={18} />إضافة للخطة</button></div></div></section>
       <section className="module-card"><h3>استخدامات سريعة</h3><div className="template-chips"><span>خطة كامب</span><span>حلقة حفظ</span><span>تقرير طفل</span><span>رسالة ولي أمر</span><span>لعبة تعليمية</span></div></section>
       <section className="module-card"><h3>قواعد الاقتراح</h3><p className="muted-copy">لا يكرر نفس النشاط داخل اليوم، ويقترح بناءً على العمر ونوع البرنامج والتوبكس المطلوبة.</p></section>
     </div>
@@ -440,8 +461,8 @@ function SettingsPage() {
     <div className="module-grid">
       <ModuleHero icon={Settings} kicker="الإعدادات" title="إعدادات الأكاديمية والنظام" desc="بيانات الأكاديمية، الصلاحيات، القوالب، وطريقة ظهور المحتوى لولي الأمر." action="حفظ التغييرات" />
       <section className="module-card span-2 settings-form"><label>اسم الأكاديمية<input defaultValue="ويبقى الأثر" /></label><label>رقم التواصل<input defaultValue="01000000000" /></label><label>البريد الإلكتروني<input defaultValue="info@we-yabqa.com" /></label><label>المدينة<input defaultValue="القاهرة" /></label></section>
-      <section className="module-card"><h3><Lock size={18}/>الصلاحيات</h3><div className="settings-list"><span>المدير يرى كل الصفحات</span><span>المعلمة تعدل خططها فقط</span><span>ولي الأمر يرى الخطة الشهرية والتقارير</span></div></section>
-      <section className="module-card"><h3><Palette size={18}/>الهوية البصرية</h3><p className="muted-copy">ألوان هادئة، تصميم مودرن، واتجاه RTL مناسب للموبايل واللاب.</p><button className="wide-btn"><Save size={18}/>حفظ الهوية</button></section>
+      <section className="module-card"><h3><Lock size={18} />الصلاحيات</h3><div className="settings-list"><span>المدير يرى كل الصفحات</span><span>المعلمة تعدل خططها فقط</span><span>ولي الأمر يرى الخطة الشهرية والتقارير</span></div></section>
+      <section className="module-card"><h3><Palette size={18} />الهوية البصرية</h3><p className="muted-copy">ألوان هادئة، تصميم مودرن، واتجاه RTL مناسب للموبايل واللاب.</p><button className="wide-btn"><Save size={18} />حفظ الهوية</button></section>
     </div>
   );
 }
