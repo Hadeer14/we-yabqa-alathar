@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import './ParentPortal.css';
 
-export default function ParentPortal({ user, onLogout }) {
+export default function parentPortal({ user, onLogout }) {
   const student = user?.student || {};
 
   return (
