@@ -129,7 +129,7 @@ export default function Dashboard({onLogout}) {
                     <button
                     type="button"
                     className="logout-btn"
-                    onClick={onlogout}
+                    onClick={onLogout}
                    
                     >
                     <span className="nav-icon">
