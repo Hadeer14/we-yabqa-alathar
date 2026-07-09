@@ -410,6 +410,11 @@ export default function Students() {
                 </div>
               ))}
             </div>
+            <div className="student-login-box">
+              <b>بيانات الدخول</b>
+              <span>اسم المستخدم: {student.parentUsername || student.studentCode || '—'}</span>
+              <span>كلمة المرور: {student.parentPassword || '—'}</span>
+            </div>
 
             <div className="student-actions">
               <button type="button" onClick={() => openMessage(student, absenceMessage(student))}>

@@ -167,3 +167,17 @@ button,
 button, input, select, textarea { pointer-events: auto !important; }
 
 button, input, select, textarea { pointer-events: auto !important; }
+.student-login-box {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(49, 91, 44, 0.08);
+  display: grid;
+  gap: 5px;
+  color: #315b2c;
+  font-weight: 800;
+}
+
+.student-login-box b {
+  color: #213f25;
+}
