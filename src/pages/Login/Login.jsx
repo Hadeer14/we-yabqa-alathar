@@ -1,44 +1,69 @@
 import React, { useEffect, useState } from "react";
 import { Eye, EyeOff, LockKeyhole, LogIn, Mail } from "lucide-react";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../../services/firebase";
+import { collection, getDocs, limit, query, where } from "firebase/firestore";
+import { auth, db } from "../../services/firebase";
 import logo from "../../assets/logo.jpeg";
 import "./Login.css";
 
-export default function Login({ onLogin }) {
+export default function Login({ onParentLogin }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
 
-  const [email, setEmail] = useState("admin@athar.com");
-  const [password, setPassword] = useState("12345678");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 950);
     return () => clearTimeout(timer);
-  }, []);
-
-  const handleLogin = async () => {
+  }, []);const handleLogin = async () => {
     setError("");
     setLoading(true);
 
+    const loginValue = email.trim();
+    const passwordValue = password.trim();
+
     try {
-      await signInWithEmailAndPassword(
-        auth,
-        email.trim(),
-        password.trim()
+      // لو المستخدم كتب إيميل => دخول الإدارة
+      if (loginValue.includes("@")) {
+        await signInWithEmailAndPassword(
+          auth,
+          loginValue,
+          passwordValue
+        );
+        return;
+      }
+
+      // غير كده اعتبره ولي أمر
+      const q = query(
+        collection(db, "students"),
+        where("parentUsername", "==", loginValue),
+        where("parentPassword", "==", passwordValue),
+        limit(1)
       );
 
-      onLogin();
+      const result = await getDocs(q);
+
+      if (!result.empty) {
+        const student = {
+          id: result.docs[0].id,
+          ...result.docs[0].data(),
+        };
+
+        onParentLogin(student);
+        return;
+      }
+
+      setError("بيانات الدخول غير صحيحة");
     } catch (err) {
-      setError("البريد الإلكتروني أو كلمة المرور غير صحيحة");
+      setError("بيانات الدخول غير صحيحة");
     } finally {
       setLoading(false);
     }
-  };
-
-  return (
+  };return (
     <main className="login-page" dir="rtl">
       {showSplash && (
         <div className="splash-screen">
@@ -80,25 +105,30 @@ export default function Login({ onLogin }) {
 
       <section className="form-panel">
         <div className="login-card">
+
           <div className="card-icon">🌱</div>
 
-          <h3>مرحبا بكم</h3>
-          <p>سجلي الدخول للمتابعة</p>
+          <h3>مرحبًا بكم</h3>
+          <p>سجل الدخول باستخدام البريد الإلكتروني أو كود ولي الأمر.</p>
 
-          <label>البريد الإلكتروني</label>
+          <label>البريد الإلكتروني أو كود الدخول</label>
+
           <div className="input-box">
             <Mail size={22} />
+
             <input
-              type="email"
-              placeholder="admin@athar.com"
+              type="text"
+              placeholder="admin@athar.com أو WB-XXXXXX"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
 
           <label>كلمة المرور</label>
+
           <div className="input-box">
             <LockKeyhole size={22} />
+
             <input
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
@@ -112,10 +142,14 @@ export default function Login({ onLogin }) {
             >
               {showPassword ? <EyeOff size={21} /> : <Eye size={21} />}
             </button>
-          </div>
-
-          {error && (
-            <p style={{ color: "#c0392b", fontSize: "14px", marginTop: "10px" }}>
+          </div>{error && (
+            <p
+              style={{
+                color: "#c0392b",
+                fontSize: "14px",
+                marginTop: "10px",
+              }}
+            >
               {error}
             </p>
           )}
@@ -136,12 +170,19 @@ export default function Login({ onLogin }) {
             onClick={handleLogin}
             disabled={loading}
           >
-            <span>{loading ? "جاري الدخول..." : "تسجيل الدخول"}</span>
+            <span>
+              {loading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
+            </span>
+
             <LogIn size={22} />
           </button>
 
-          <div className="rights">جميع الحقوق محفوظة © ويبقى الأثر</div>
-        </div></section>
+          <div className="rights">
+            جميع الحقوق محفوظة © ويبقى الأثر
+          </div>
+
+        </div>
+      </section>
     </main>
   );
 }

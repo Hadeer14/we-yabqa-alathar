@@ -11,6 +11,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 function App() {
   const [user, setUser] = useState(null);
+  const [parentSession, setParentSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,30 +23,33 @@ function App() {
     return () => unsubscribe();
   }, []);
 
+  function handleLogout() {
+    setParentSession(null);
+    signOut(auth);
+  }
+
   if (loading) {
     return <div>جاري التحميل...</div>;
   }
 
-  if (!user) {
-    return <Login />;
+  if (parentSession) {
+    return (
+      <ParentPortal
+        user={{ student: parentSession }}
+        onLogout={handleLogout}
+      />
+    );
   }
-  const isParentDemo = true;
 
-if (isParentDemo) {
+  if (!user) {
+    return <Login onParentLogin={setParentSession} />;
+  }
+
   return (
-    <ParentPortal
-      user={{ student: {} }}
-      onLogout={() => signOut(auth)}
+    <Dashboard
+      onLogout={handleLogout}
     />
   );
-}
-
-return (
-  <Dashboard
-    onLogout={() => signOut(auth)}
-  />
-);
-
 }
 
 createRoot(document.getElementById('root')).render(
