@@ -207,8 +207,35 @@ export default function Dashboard({onLogout}) {
           <h3>رسالة جاهزة</h3>
           <p>{message}</p>
           <div className="message-actions">
-            <button type="button">نسخ الرسالة</button>
-            <button type="button">فتح واتساب</button>
+            <button
+  type="button"
+  onClick={() => {
+    navigator.clipboard.writeText(message);
+    alert('تم نسخ الرسالة');
+  }}
+>
+  نسخ الرسالة
+</button>
+
+<button
+  type="button"
+  onClick={() => {
+    const phone = prompt('اكتبي رقم الواتساب بصيغة دولية مثال: +201012345678');
+
+    if (!phone) {
+      alert('لم يتم إدخال رقم');
+      return;
+    }
+
+    const cleanPhone = phone.replace(/[^\d]/g, '');
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+
+    window.open(url, '_blank');
+  }}
+>
+  فتح واتساب
+</button>
+            
           </div>
         </div>
       )}
