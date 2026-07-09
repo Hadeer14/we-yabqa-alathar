@@ -7,7 +7,7 @@ import {
   WalletCards,
   UserRound
 } from 'lucide-react';
-import './ParentPortal.css';
+import './parentPortal.css';
 
 export default function parentPortal({ user, onLogout }) {
   const student = user?.student || {};
