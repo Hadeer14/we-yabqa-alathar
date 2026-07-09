@@ -73,6 +73,9 @@ function generateStudentCode() {
   }
   return code;
 }
+function generateParentPassword() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
 
 export default function Students() {
   const [students, setStudents] = useState([]);
@@ -163,9 +166,13 @@ export default function Students() {
       alert('اكتبي رقم واتساب الأب أو الأم على الأقل، ويفضل بصيغة دولية مثل +2010...');
       return;
     }
+    const studentCode = generateStudentCode();
+    const password = generatePassword();
 
     const payload = {
       ...form,
+      studentCode,
+      password,
       name: form.name.trim(),
       fatherWhatsapp: cleanPhone(form.fatherWhatsapp),
       motherWhatsapp: cleanPhone(form.motherWhatsapp),
@@ -182,12 +189,18 @@ export default function Students() {
     if (editingStudent) {
       await updateDoc(doc(db, 'students', editingStudent.id), payload);
     } else {
+      const studentCode = generateStudentCode();
+      const parentPassword = generateParentPassword();
+
       await addDoc(collection(db, 'students'), {
         ...payload,
-        studentCode: generateStudentCode(),
+        studentCode,
+        parentUsername: studentCode,
+        parentPassword,
         status: 'active',
         createdAt: serverTimestamp()
       });
+
     }
 
     setShowModal(false);
@@ -523,72 +536,72 @@ export default function Students() {
         </div>
       )}
       {messageModal && (
-  <div className="message-preview">
-    <button type="button" onClick={() => setMessageModal(null)}>
-      <X size={18} />
-    </button>
+        <div className="message-preview">
+          <button type="button" onClick={() => setMessageModal(null)}>
+            <X size={18} />
+          </button>
 
-    <h3>تعديل رسالة الواتساب</h3>
+          <h3>تعديل رسالة الواتساب</h3>
 
-    <textarea
-      value={messageModal.text}
-      onChange={(e) =>
-        setMessageModal({ ...messageModal, text: e.target.value })
-      }
-      style={{
-        width: '100%',
-        minHeight: '160px',
-        borderRadius: '16px',
-        border: '1px solid #eadcc4',
-        padding: '14px',
-        fontFamily: 'inherit',
-        fontWeight: 700,
-        lineHeight: 1.8,
-        resize: 'vertical',
-        marginBottom: '12px'
-      }}
-    />
+          <textarea
+            value={messageModal.text}
+            onChange={(e) =>
+              setMessageModal({ ...messageModal, text: e.target.value })
+            }
+            style={{
+              width: '100%',
+              minHeight: '160px',
+              borderRadius: '16px',
+              border: '1px solid #eadcc4',
+              padding: '14px',
+              fontFamily: 'inherit',
+              fontWeight: 700,
+              lineHeight: 1.8,
+              resize: 'vertical',
+              marginBottom: '12px'
+            }}
+          />
 
-    <div>
-      <button
-        type="button"
-        className="primary-modal-btn"
-        onClick={() => {
-          navigator.clipboard.writeText(messageModal.text);
-          alert('تم نسخ الرسالة');
-        }}
-      >
-        نسخ الرسالة
-      </button>
+          <div>
+            <button
+              type="button"
+              className="primary-modal-btn"
+              onClick={() => {
+                navigator.clipboard.writeText(messageModal.text);
+                alert('تم نسخ الرسالة');
+              }}
+            >
+              نسخ الرسالة
+            </button>
 
-      <button
-        type="button"
-        className="soft-modal-btn"
-        onClick={() => {
-          const phone = messageModal.phones?.[0]?.replace(/[^\d]/g, '');
+            <button
+              type="button"
+              className="soft-modal-btn"
+              onClick={() => {
+                const phone = messageModal.phones?.[0]?.replace(/[^\d]/g, '');
 
-          if (!phone) {
-            alert('لا يوجد رقم واتساب');
-            return;
-          }
+                if (!phone) {
+                  alert('لا يوجد رقم واتساب');
+                  return;
+                }
 
-          const url = `https://wa.me/${phone}?text=${encodeURIComponent(messageModal.text)}`;
-          window.open(url, '_blank');
-        }}
-      >
-        فتح واتساب
-      </button>
+                const url = `https://wa.me/${phone}?text=${encodeURIComponent(messageModal.text)}`;
+                window.open(url, '_blank');
+              }}
+            >
+              فتح واتساب
+            </button>
+          </div>
+        </div>
+      )}
     </div>
-  </div>
-)}
-</div>
-);
+  );
 }
-      
- 
-   
 
-     
+
+
+
+
 
 function SummaryCard({ icon: Icon, label, value }) {
   return (
