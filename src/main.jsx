@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 
 import Login from './pages/Login/Login';
 import Dashboard from './pages/Dashboard/Dashboard';
-
+import ParentPortal from './pages/parentPortal/parentPortal';
 import './styles/global.css';
 
 import { auth } from './services/firebase';
@@ -29,12 +29,23 @@ function App() {
   if (!user) {
     return <Login />;
   }
+  const isParentDemo = true;
 
+if (isParentDemo) {
   return (
-    <Dashboard
+    <ParentPortal
+      user={{ student: {} }}
       onLogout={() => signOut(auth)}
     />
   );
+}
+
+return (
+  <Dashboard
+    onLogout={() => signOut(auth)}
+  />
+);
+
 }
 
 createRoot(document.getElementById('root')).render(
