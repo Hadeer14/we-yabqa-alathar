@@ -109,16 +109,16 @@ export default function Login({ onParentLogin }) {
           <div className="card-icon">🌱</div>
 
           <h3>مرحبًا بكم</h3>
-          <p>سجل الدخول باستخدام البريد الإلكتروني أو كود ولي الأمر.</p>
+          <p>سجل الدخول للمتابعة </p>
 
-          <label>البريد الإلكتروني أو كود الدخول</label>
+          <label>بيانات الدخول </label>
 
           <div className="input-box">
             <Mail size={22} />
 
             <input
               type="text"
-              placeholder="admin@athar.com أو WB-XXXXXX"
+              placeholder="اكتب  بيانات الدخول"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
