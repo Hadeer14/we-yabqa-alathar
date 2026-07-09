@@ -193,9 +193,8 @@ export default function Dashboard({ onLogout }) {
         {activePage === 'home' ? (
           <HomeDashboard
             setActivePage={setActivePage}
-            setMessage={setMessage}
-            setShowAllAlerts={setShowAllAlerts}
-            handleAlert={handleAlert}
+            stats={stats}
+         
           />
         ) : activePage === 'children' ? (
           <Students />
@@ -289,7 +288,7 @@ export default function Dashboard({ onLogout }) {
   );
 }
 
-function HomeDashboard({ setActivePage, handleAlert, setShowAllAlerts }) {
+function HomeDashboard({ setActivePage, stats }) {
   return (
     <div className="home-grid">
       <section className="hero-dashboard-card">
