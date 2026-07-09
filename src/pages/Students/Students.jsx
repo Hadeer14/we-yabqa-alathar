@@ -6,6 +6,7 @@ import {
   CreditCard,
   Edit3,
   MessageCircle,
+  FilePenLine,
   Plus,
   Search,
   Trash2,
