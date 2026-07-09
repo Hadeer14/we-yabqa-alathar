@@ -93,10 +93,18 @@ export default function Dashboard({ onLogout }) {
   const [message, setMessage] = useState('');
   const [showAllAlerts, setShowAllAlerts] = useState(false);
   const [students, setStudents] = useState([]);
+  const [programs, setPrograms] = useState([]);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "students"), (snapshot) => {
       setStudents(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+    });
+
+    return () => unsubscribe();
+  }, []);
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "programs"), (snapshot) => {
+      setPrograms(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
     });
 
     return () => unsubscribe();
@@ -112,7 +120,8 @@ export default function Dashboard({ onLogout }) {
 
   const stats = [
     { label: "الأطفال النشطين", value: activeStudents, icon: Users, tone: "green" },
-    { label: "البرامج النشطة", value: "—", icon: BookOpen, tone: "gold" },
+    { label: "البرامج النشطة", value: programs.length, icon: BookOpen, tone: "gold" },
+    
     { label: "غياب اليوم", value: "—", icon: AlertTriangle, tone: "red" },
     { label: "تجديدات مطلوبة", value: paymentNeeded, icon: WalletCards, tone: "blue" },
   ];
@@ -194,7 +203,7 @@ export default function Dashboard({ onLogout }) {
           <HomeDashboard
             setActivePage={setActivePage}
             stats={stats}
-         
+
           />
         ) : activePage === 'children' ? (
           <Students />
