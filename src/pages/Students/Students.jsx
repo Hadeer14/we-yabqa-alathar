@@ -1,101 +1,131 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Archive, BookOpen, CalendarDays, CheckCircle2, Clock3, CreditCard, Eye,
-  FilePenLine, MessageCircle, Plus, Search, Trash2, UserRound, WalletCards, X
+  Archive,
+  CheckCircle2,
+  Clock3,
+  CreditCard,
+  Edit3,
+  MessageCircle,
+  Plus,
+  Search,
+  Trash2,
+  UserRound,
+  WalletCards,
+  X
 } from 'lucide-react';
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  updateDoc
+} from 'firebase/firestore';
+import { db } from '../../services/firebase';
 import './Students.css';
 
 const programOptions = [
-  'حفظ القرآن',
-  'التفسير',
-  'السيرة',
-  'ما لا يسع المسلم جهله',
+  'حلقة القرآن',
   'الكامب الصيفي',
-  'الألعاب',
-  'الأنشطة',
-  'الرياضة'
+  'الكامب الشتوي',
+  'حلقة الفقه',
+  'حلقة العقيدة',
+  'حلقة السيرة',
+  'تأسيس اللغة العربية'
 ];
 
 const emptySubscription = {
-  program: 'حفظ القرآن',
+  id: Date.now(),
+  program: 'حلقة القرآن',
   paymentType: 'hours',
   unitName: 'ساعة',
   unitLimit: 8,
   usedUnits: 0,
+  reminderAt: 2,
   amount: 400,
   customMessage: ''
 };
-
-const initialStudents = [
-  {
-    id: 1,
-    name: 'محمد أحمد',
-    gender: 'male',
-    birthDate: '2018-05-10',
-    level: 'المستوى الأول',
-    parentName: 'أحمد محمد',
-    parentPhone: '01012345678',
-    subscriptions: [
-      { id: 101, program: 'حفظ القرآن', paymentType: 'hours', unitName: 'ساعة', unitLimit: 8, usedUnits: 8, amount: 400, customMessage: '' },
-      { id: 102, program: 'الألعاب', paymentType: 'monthly', unitName: 'شهر', unitLimit: 1, usedUnits: 0, amount: 200, customMessage: '' }
-    ],
-    status: 'active'
-  },
-  {
-    id: 2,
-    name: 'فاطمة علي',
-    gender: 'female',
-    birthDate: '2017-09-22',
-    level: 'المستوى الثاني',
-    parentName: 'مريم علي',
-    parentPhone: '01123456789',
-    subscriptions: [
-      { id: 201, program: 'الكامب الصيفي', paymentType: 'monthly', unitName: 'شهر', unitLimit: 1, usedUnits: 0, amount: 900, customMessage: '' },
-      { id: 202, program: 'الرياضة', paymentType: 'sessions', unitName: 'حصة', unitLimit: 4, usedUnits: 2, amount: 150, customMessage: 'برجاء تذكير ولي الأمر بدفع اشتراك الرياضة عند اكتمال الحصص.' }
-    ],
-    status: 'active'
-  }
-];
 
 const emptyForm = {
   name: '',
   gender: 'male',
   birthDate: '',
   level: '',
-  parentName: '',
-  parentPhone: '',
-  subscriptions: [{ id: Date.now(), ...emptySubscription }]
+  address: '',
+  notes: '',
+  fatherName: '',
+  fatherWhatsapp: '',
+  motherName: '',
+  motherWhatsapp: '',
+  preferredContact: 'both',
+  subscriptions: [{ ...emptySubscription, id: Date.now() }]
 };
 
+function generateStudentCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'WB-';
+  for (let i = 0; i < 6; i += 1) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
 export default function Students() {
-  const [students, setStudents] = useState(initialStudents);
-  const [query, setQuery] = useState('');
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [queryText, setQueryText] = useState('');
   const [filter, setFilter] = useState('active');
   const [showModal, setShowModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [step, setStep] = useState(1);
-  const [previewMessage, setPreviewMessage] = useState('');
+  const [messageModal, setMessageModal] = useState(null);
+
+  useEffect(() => {
+    const q = query(collection(db, 'students'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setStudents(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const filteredStudents = useMemo(() => {
+    const term = queryText.trim();
+
     return students.filter((student) => {
       const matchSearch =
-        student.name.includes(query) ||
-        student.parentName.includes(query) ||
-        student.parentPhone.includes(query);
+        !term ||
+        student.name?.includes(term) ||
+        student.studentCode?.includes(term) ||
+        student.fatherName?.includes(term) ||
+        student.motherName?.includes(term) ||
+        student.fatherWhatsapp?.includes(term) ||
+        student.motherWhatsapp?.includes(term);
 
       const matchFilter =
         filter === 'all' ||
         student.status === filter ||
-        (filter === 'payment' && student.subscriptions.some(needsPayment));
+        (filter === 'payment' && (student.subscriptions || []).some(needsPayment));
 
       return matchSearch && matchFilter;
     });
-  }, [students, query, filter]);
+  }, [students, queryText, filter]);
+
+  function resetForm() {
+    setForm({
+      ...emptyForm,
+      subscriptions: [{ ...emptySubscription, id: Date.now() }]
+    });
+  }
 
   function openAddModal() {
     setEditingStudent(null);
-    setForm({ ...emptyForm, subscriptions: [{ id: Date.now(), ...emptySubscription }] });
+    resetForm();
     setStep(1);
     setShowModal(true);
   }
@@ -103,68 +133,88 @@ export default function Students() {
   function openEditModal(student) {
     setEditingStudent(student);
     setForm({
-      name: student.name,
-      gender: student.gender,
-      birthDate: student.birthDate,
-      level: student.level,
-      parentName: student.parentName,
-      parentPhone: student.parentPhone,
-      subscriptions: student.subscriptions
+      name: student.name || '',
+      gender: student.gender || 'male',
+      birthDate: student.birthDate || '',
+      level: student.level || '',
+      address: student.address || '',
+      notes: student.notes || '',
+      fatherName: student.fatherName || '',
+      fatherWhatsapp: student.fatherWhatsapp || '',
+      motherName: student.motherName || '',
+      motherWhatsapp: student.motherWhatsapp || '',
+      preferredContact: student.preferredContact || 'both',
+      subscriptions: student.subscriptions?.length
+        ? student.subscriptions
+        : [{ ...emptySubscription, id: Date.now() }]
     });
     setStep(1);
     setShowModal(true);
   }
 
-  function saveStudent() {
-    if (!form.name.trim() || !form.parentPhone.trim()) {
-      alert('من فضلك اكتبي اسم الطفل ورقم ولي الأمر');
+  async function saveStudent() {
+    if (!form.name.trim()) {
+      alert('اكتبي اسم الطالب');
       return;
     }
 
+    if (!form.fatherWhatsapp.trim() && !form.motherWhatsapp.trim()) {
+      alert('اكتبي رقم واتساب الأب أو الأم على الأقل، ويفضل بصيغة دولية مثل +2010...');
+      return;
+    }
+
+    const payload = {
+      ...form,
+      name: form.name.trim(),
+      fatherWhatsapp: cleanPhone(form.fatherWhatsapp),
+      motherWhatsapp: cleanPhone(form.motherWhatsapp),
+      subscriptions: form.subscriptions.map((sub) => ({
+        ...sub,
+        unitLimit: Number(sub.unitLimit) || 0,
+        usedUnits: Number(sub.usedUnits) || 0,
+        reminderAt: Number(sub.reminderAt) || 0,
+        amount: Number(sub.amount) || 0
+      })),
+      updatedAt: serverTimestamp()
+    };
+
     if (editingStudent) {
-      setStudents((prev) =>
-        prev.map((student) =>
-          student.id === editingStudent.id
-            ? { ...student, ...form }
-            : student
-        )
-      );
+      await updateDoc(doc(db, 'students', editingStudent.id), payload);
     } else {
-      setStudents((prev) => [
-        { id: Date.now(), ...form, status: 'active' },
-        ...prev
-      ]);
+      await addDoc(collection(db, 'students'), {
+        ...payload,
+        studentCode: generateStudentCode(),
+        status: 'active',
+        createdAt: serverTimestamp()
+      });
     }
 
     setShowModal(false);
   }
 
-  function archiveStudent(id) {
-    setStudents((prev) => prev.map((s) => s.id === id ? { ...s, status: 'archived' } : s));
-  }
-
-  function restoreStudent(id) {
-    setStudents((prev) => prev.map((s) => s.id === id ? { ...s, status: 'active' } : s));
-  }
-
-  function deleteStudent(id) {
-    const ok = confirm('هل أنتِ متأكدة من حذف الطفل نهائيًا؟');
-    if (!ok) return;
-    setStudents((prev) => prev.filter((student) => student.id !== id));
-  }
-
-  function updateSub(index, key, value) {
-    setForm((prev) => {
-      const subscriptions = [...prev.subscriptions];
-      subscriptions[index] = { ...subscriptions[index], [key]: value };
-      return { ...prev, subscriptions };
+  async function archiveStudent(id) {
+    await updateDoc(doc(db, 'students', id), {
+      status: 'archived',
+      updatedAt: serverTimestamp()
     });
+  }
+
+  async function restoreStudent(id) {
+    await updateDoc(doc(db, 'students', id), {
+      status: 'active',
+      updatedAt: serverTimestamp()
+    });
+  }
+
+  async function deleteStudent(id) {
+    if (!confirm('حذف الطالب نهائيًا؟')) return;
+    await deleteDoc(doc(db, 'students', id));
   }
 
   function addSubscription() {
     setForm((prev) => ({
       ...prev,
-      subscriptions: [{ id: Date.now(), ...emptySubscription }, ...prev.subscriptions]
+      subscriptions: [{ ...emptySubscription, id: Date.now() }, ...prev.subscriptions]
     }));
   }
 
@@ -175,11 +225,53 @@ export default function Students() {
     }));
   }
 
-  function absenceMessage(student) {
-    if (student.gender === 'female') {
-      return `السلام عليكم، نحب نطمئن على ${student.name} لأنها لم تحضر اليوم. إن شاء الله تكون بخير وننتظر حضورها قريبًا 🌱`;
+  function updateSubscription(index, key, value) {
+    setForm((prev) => {
+      const subscriptions = [...prev.subscriptions];
+      subscriptions[index] = { ...subscriptions[index], [key]: value };
+      return { ...prev, subscriptions };
+    });
+  }
+
+  function getStudentPhones(student) {
+    const phones = [];
+
+    if ((student.preferredContact === 'father' || student.preferredContact === 'both') && student.fatherWhatsapp) {
+      phones.push(student.fatherWhatsapp);
     }
-    return `السلام عليكم، نحب نطمئن على ${student.name} لأنه لم يحضر اليوم. إن شاء الله يكون بخير وننتظر حضوره قريبًا 🌱`;
+
+    if ((student.preferredContact === 'mother' || student.preferredContact === 'both') && student.motherWhatsapp) {
+      phones.push(student.motherWhatsapp);
+    }
+
+    if (!phones.length) {
+      if (student.fatherWhatsapp) phones.push(student.fatherWhatsapp);
+      if (student.motherWhatsapp) phones.push(student.motherWhatsapp);
+    }
+
+    return phones;
+  }
+
+  function openMessage(student, message) {
+    setMessageModal({
+      student,
+      phones: getStudentPhones(student),
+      text: message
+    });
+  }
+
+  function absenceMessage(student) {
+    return `السلام عليكم ورحمة الله وبركاته 🌱
+
+نحب نطمئن على ${student.name} لأنه/لأنها لم يحضر الفترة الأخيرة.
+
+وحابين نبلغ حضرتكم إننا أطلقنا الموقع الخاص بأكاديمية ويبقى الأثر، ومن خلاله بإذن الله تقدروا تتابعوا:
+- الحضور
+- الاشتراك والساعات المتبقية
+- الخطة والمحتوى
+- التقارير والتنبيهات
+
+نتمنى نشوفكم قريبًا بإذن الله، ونسعد بعودة ${student.name} للأكاديمية.`;
   }
 
   function paymentMessage(student, sub) {
@@ -193,7 +285,30 @@ export default function Students() {
         .replaceAll('{amount}', sub.amount);
     }
 
-    return `السلام عليكم، نذكركم أن اشتراك ${student.name} في ${sub.program} وصل إلى ${sub.usedUnits} ${sub.unitName} من أصل ${sub.unitLimit} ${sub.unitName}، برجاء تجديد الاشتراك بقيمة ${sub.amount} جنيه. أكاديمية ويبقى الأثر 🌱`;
+    const remaining = Math.max(Number(sub.unitLimit || 0) - Number(sub.usedUnits || 0), 0);
+
+    return `السلام عليكم 🌱
+
+نذكركم أن اشتراك ${student.name} في ${sub.program} أوشك على الانتهاء.
+المتبقي: ${remaining} ${sub.unitName}.
+برجاء تجديد الاشتراك بقيمة ${sub.amount} جنيه لاستمرار الحضور.
+
+أكاديمية ويبقى الأثر`;
+  }
+
+  function openWhatsApp(phone, text) {
+    const cleaned = cleanPhone(phone).replace('+', '');
+    if (!cleaned) return;
+    window.open(`https://wa.me/${cleaned}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+  }
+
+  function sendWhatsApp() {
+    if (!messageModal?.phones?.length) {
+      alert('لا يوجد رقم واتساب صالح');
+      return;
+    }
+
+    messageModal.phones.forEach((phone) => openWhatsApp(phone, messageModal.text));
   }
 
   return (
@@ -201,8 +316,8 @@ export default function Students() {
       <section className="students-hero">
         <div>
           <span>إدارة الأطفال</span>
-          <h2>إضافة، تعديل، أرشفة، حذف، وتنبيهات دفع مرنة حسب الطفل والبرنامج.</h2>
-          <p>كل طفل ممكن يكون له أكتر من اشتراك، وكل اشتراك له نظام دفع ورسالة خاصة.</p>
+          <h2>تسجيل الطلاب الحقيقيين والاشتراكات والساعات ورسائل الواتساب.</h2>
+          <p>كل طالب له كود تلقائي، عنوان، بيانات الأب والأم، واشتراكات بالساعات.</p>
         </div>
 
         <button type="button" className="add-student-btn" onClick={openAddModal}>
@@ -215,9 +330,9 @@ export default function Students() {
         <div className="students-search">
           <Search size={19} />
           <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="بحث باسم الطفل، ولي الأمر، أو رقم الهاتف..."
+            value={queryText}
+            onChange={(e) => setQueryText(e.target.value)}
+            placeholder="بحث باسم الطالب، الكود، الأب، الأم، أو رقم الهاتف..."
           />
         </div>
 
@@ -230,13 +345,16 @@ export default function Students() {
       </section>
 
       <section className="students-summary">
-        <SummaryCard icon={UserRound} label="إجمالي الأطفال" value={students.length} />
-        <SummaryCard icon={CheckCircle2} label="نشطين" value={students.filter(s => s.status === 'active').length} />
-        <SummaryCard icon={Archive} label="مؤرشفين" value={students.filter(s => s.status === 'archived').length} />
-        <SummaryCard icon={WalletCards} label="دفع مطلوب" value={students.reduce((count, student) => count + student.subscriptions.filter(needsPayment).length, 0)} />
+        <SummaryCard icon={CheckCircle2} label="نشطين" value={students.filter((s) => s.status === 'active').length} />
+        <SummaryCard icon={Archive} label="مؤرشفين" value={students.filter((s) => s.status === 'archived').length} />
+        <SummaryCard icon={WalletCards} label="دفع مطلوب" value={students.reduce((total, student) => total + (student.subscriptions || []).filter(needsPayment).length, 0)} />
       </section>
 
       <section className="students-list">
+        {loading && <p>جاري تحميل الطلاب...</p>}
+
+        {!loading && filteredStudents.length === 0 && <p>لا يوجد طلاب بعد.</p>}
+
         {filteredStudents.map((student) => (
           <article className="student-card" key={student.id}>
             <div className="student-avatar">{student.gender === 'female' ? 'ب' : 'و'}</div>
@@ -245,7 +363,9 @@ export default function Students() {
               <div className="student-title-row">
                 <div>
                   <h3>{student.name}</h3>
-                  <p>{student.gender === 'female' ? 'أنثى' : 'ذكر'} • {student.level || 'بدون مستوى'} • ولي الأمر: {student.parentName}</p>
+                  <p>
+                    كود: {student.studentCode || '—'} • {student.gender === 'female' ? 'أنثى' : 'ذكر'} • {student.level || 'بدون مستوى'}
+                  </p>
                 </div>
 
                 <span className={student.status === 'active' ? 'status active' : 'status archived'}>
@@ -254,35 +374,47 @@ export default function Students() {
               </div>
 
               <div className="student-tags">
-                {student.subscriptions.map((sub) => (
+                {(student.subscriptions || []).map((sub) => (
                   <span key={sub.id}>{sub.program} — {paymentTypeLabel(sub.paymentType)}</span>
                 ))}
               </div>
 
               <div className="student-meta">
-                <span><UserRound size={16} /> {student.parentPhone}</span>
-                <span><CreditCard size={16} /> {student.subscriptions.length} اشتراك</span>
+                <span><UserRound size={16} /> الأب: {student.fatherName || '—'} {student.fatherWhatsapp || ''}</span>
+                <span><UserRound size={16} /> الأم: {student.motherName || '—'} {student.motherWhatsapp || ''}</span>
+                <span><CreditCard size={16} /> {(student.subscriptions || []).length} اشتراك</span>
               </div>
 
-              {student.subscriptions.filter(needsPayment).map((sub) => (
+              {student.address && <p className="student-address">العنوان: {student.address}</p>}
+
+              {(student.subscriptions || []).filter(needsPayment).map((sub) => (
                 <div className="payment-alert" key={sub.id}>
                   <Clock3 size={17} />
-                  {sub.program}: وصل إلى {sub.usedUnits}/{sub.unitLimit} {sub.unitName}
-                  <button type="button" onClick={() => setPreviewMessage(paymentMessage(student, sub))}>رسالة الدفع</button>
+                  {sub.program}: المتبقي {Math.max(Number(sub.unitLimit || 0) - Number(sub.usedUnits || 0), 0)} {sub.unitName}
+                  <button type="button" onClick={() => openMessage(student, paymentMessage(student, sub))}>
+                    رسالة الدفع
+                  </button>
                 </div>
               ))}
             </div>
 
             <div className="student-actions">
-              <button type="button" className="view"><Eye size={17} /> عرض</button>
-              <button type="button" onClick={() => setPreviewMessage(absenceMessage(student))}><MessageCircle size={17} /> رسالة غياب</button>
-              <button type="button" onClick={() => openEditModal(student)}><FilePenLine size={17} /> تعديل</button>
+              <button type="button" onClick={() => openMessage(student, absenceMessage(student))}>
+                <MessageCircle size={17} /> رسالة غياب
+              </button>
+              <button type="button" onClick={() => openEditModal(student)}>
+                <FilePenLine size={17} /> تعديل
+              </button>
+
               {student.status === 'active' ? (
                 <button type="button" onClick={() => archiveStudent(student.id)}><Archive size={17} /> أرشفة</button>
               ) : (
                 <button type="button" onClick={() => restoreStudent(student.id)}><CheckCircle2 size={17} /> استعادة</button>
               )}
-              <button type="button" className="danger" onClick={() => deleteStudent(student.id)}><Trash2 size={17} /> حذف</button>
+
+              <button type="button" className="danger" onClick={() => deleteStudent(student.id)}>
+                <Trash2 size={17} /> حذف
+              </button>
             </div>
           </article>
         ))}
@@ -297,7 +429,7 @@ export default function Students() {
 
             <div className="modal-head">
               <h3>{editingStudent ? 'تعديل بيانات الطفل' : 'إضافة طفل جديد'}</h3>
-              <p>تقدري تضيفي اشتراك مختلف لكل برنامج، وتعدلي الساعة/الحصة والرسالة.</p>
+              <p>املئي البيانات الأساسية ثم بيانات التواصل ثم الاشتراكات.</p>
             </div>
 
             <div className="steps">
@@ -314,12 +446,27 @@ export default function Students() {
                 <Select label="النوع" value={form.gender} onChange={(v) => setForm({ ...form, gender: v })} options={[['male', 'ذكر'], ['female', 'أنثى']]} />
                 <Input label="تاريخ الميلاد" type="date" value={form.birthDate} onChange={(v) => setForm({ ...form, birthDate: v })} />
                 <Input label="المستوى" value={form.level} onChange={(v) => setForm({ ...form, level: v })} />
-                <Input label="اسم ولي الأمر" value={form.parentName} onChange={(v) => setForm({ ...form, parentName: v })} />
-                <Input label="رقم ولي الأمر" value={form.parentPhone} onChange={(v) => setForm({ ...form, parentPhone: v })} />
+                <Input label="العنوان" value={form.address} onChange={(v) => setForm({ ...form, address: v })} />
+                <Input label="ملاحظات" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} />
               </div>
             )}
 
             {step === 2 && (
+              <div className="modal-grid">
+                <Input label="اسم الأب" value={form.fatherName} onChange={(v) => setForm({ ...form, fatherName: v })} />
+                <Input label="واتساب الأب بصيغة دولية مثال +201012345678" value={form.fatherWhatsapp} onChange={(v) => setForm({ ...form, fatherWhatsapp: v })} />
+                <Input label="اسم الأم" value={form.motherName} onChange={(v) => setForm({ ...form, motherName: v })} />
+                <Input label="واتساب الأم بصيغة دولية مثال +966512345678" value={form.motherWhatsapp} onChange={(v) => setForm({ ...form, motherWhatsapp: v })} />
+                <Select
+                  label="التواصل المفضل"
+                  value={form.preferredContact}
+                  onChange={(v) => setForm({ ...form, preferredContact: v })}
+                  options={[['father', 'الأب'], ['mother', 'الأم'], ['both', 'الاثنين']]}
+                />
+              </div>
+            )}
+
+            {step === 3 && (
               <div>
                 <div className="subscriptions-head">
                   <h4 className="modal-subtitle">اشتراكات الطفل</h4>
@@ -332,25 +479,28 @@ export default function Students() {
                       <div className="subscription-title">
                         <b>اشتراك {index + 1}</b>
                         {form.subscriptions.length > 1 && (
-                          <button type="button" onClick={() => removeSubscription(index)}><Trash2 size={16} /></button>
+                          <button type="button" onClick={() => removeSubscription(index)}>
+                            <Trash2 size={16} />
+                          </button>
                         )}
                       </div>
 
                       <div className="modal-grid">
-                        <Select label="البرنامج / المادة" value={sub.program} onChange={(v) => updateSub(index, 'program', v)} options={programOptions.map((p) => [p, p])} />
-                        <Select label="نظام الدفع" value={sub.paymentType} onChange={(v) => updateSub(index, 'paymentType', v)} options={[['monthly','شهري'],['weekly','أسبوعي'],['hours','بعد عدد ساعات'],['sessions','بعد عدد حصص'],['once','مرة واحدة'],['free','مجاني'],['custom','مخصص']]} />
-                        <Input label="اسم الوحدة" value={sub.unitName} onChange={(v) => updateSub(index, 'unitName', v)} />
-                        <Input label="الدفع بعد كام وحدة؟" type="number" value={sub.unitLimit} onChange={(v) => updateSub(index, 'unitLimit', Number(v))} />
-                        <Input label="المستخدم حاليًا" type="number" value={sub.usedUnits} onChange={(v) => updateSub(index, 'usedUnits', Number(v))} />
-                        <Input label="القيمة" type="number" value={sub.amount} onChange={(v) => updateSub(index, 'amount', Number(v))} />
+                        <Select label="البرنامج" value={sub.program} onChange={(v) => updateSubscription(index, 'program', v)} options={programOptions.map((p) => [p, p])} />
+                        <Select label="نظام الدفع" value={sub.paymentType} onChange={(v) => updateSubscription(index, 'paymentType', v)} options={[['hours', 'بالساعات'], ['sessions', 'بالحصص'], ['monthly', 'شهري'], ['once', 'مرة واحدة'], ['free', 'مجاني'], ['custom', 'مخصص']]} />
+                        <Input label="اسم الوحدة" value={sub.unitName} onChange={(v) => updateSubscription(index, 'unitName', v)} />
+                        <Input label="عدد الساعات / الوحدات المدفوعة" type="number" value={sub.unitLimit} onChange={(v) => updateSubscription(index, 'unitLimit', Number(v))} />
+                        <Input label="المستخدم حاليًا" type="number" value={sub.usedUnits} onChange={(v) => updateSubscription(index, 'usedUnits', Number(v))} />
+                        <Input label="تنبيه عند كام وحدة متبقية؟" type="number" value={sub.reminderAt} onChange={(v) => updateSubscription(index, 'reminderAt', Number(v))} />
+                        <Input label="القيمة" type="number" value={sub.amount} onChange={(v) => updateSubscription(index, 'amount', Number(v))} />
                       </div>
 
                       <label className="modal-field full">
                         <span>رسالة الدفع المخصصة</span>
                         <textarea
                           value={sub.customMessage}
-                          onChange={(e) => updateSub(index, 'customMessage', e.target.value)}
-                          placeholder="اتركيها فاضية لو عايزة السيستم يكتب الرسالة تلقائيًا. ممكن تستخدمي {child} {program} {used} {limit} {unit} {amount}"
+                          onChange={(e) => updateSubscription(index, 'customMessage', e.target.value)}
+                          placeholder="اتركيها فاضية للرسالة الافتراضية. متغيرات متاحة: {child} {program} {used} {limit} {unit} {amount}"
                         />
                       </label>
                     </div>
@@ -359,18 +509,9 @@ export default function Students() {
               </div>
             )}
 
-            {step === 3 && (
-              <div className="review-box">
-                <h4>مراجعة سريعة</h4>
-                <p>الطفل: <b>{form.name || '—'}</b></p>
-                <p>ولي الأمر: <b>{form.parentName || '—'}</b></p>
-                <p>عدد الاشتراكات: <b>{form.subscriptions.length}</b></p>
-                <p>الدفع مرن لكل برنامج، والرسائل قابلة للتعديل.</p>
-              </div>
-            )}
-
             <div className="modal-actions">
               <button type="button" className="soft-modal-btn" onClick={() => setStep(Math.max(1, step - 1))}>السابق</button>
+
               {step < 3 ? (
                 <button type="button" className="primary-modal-btn" onClick={() => setStep(step + 1)}>التالي</button>
               ) : (
@@ -381,14 +522,35 @@ export default function Students() {
         </div>
       )}
 
-      {previewMessage && (
+      {messageModal && (
         <div className="message-preview">
-          <button type="button" onClick={() => setPreviewMessage('')}><X size={18} /></button>
-          <h3>نص الرسالة الجاهزة</h3>
-          <p>{previewMessage}</p>
+          <button type="button" onClick={() => setMessageModal(null)}><X size={18} /></button>
+          <h3>تعديل رسالة الواتساب</h3>
+
+          <textarea
+            value={messageModal.text}
+            onChange={(e) => setMessageModal({ ...messageModal, text: e.target.value })}
+            style={{
+              width: '100%',
+              minHeight: '170px',
+              borderRadius: '16px',
+              border: '1px solid #eadcc4',
+              padding: '14px',
+              fontFamily: 'inherit',
+              fontWeight: 700,
+              lineHeight: 1.8,
+              resize: 'vertical',
+              marginBottom: '12px'
+            }}
+          />
+
           <div>
-            <button type="button" className="primary-modal-btn">نسخ الرسالة</button>
-            <button type="button" className="soft-modal-btn">فتح واتساب</button>
+            <button type="button" className="primary-modal-btn" onClick={() => navigator.clipboard.writeText(messageModal.text)}>
+              نسخ الرسالة
+            </button>
+            <button type="button" className="soft-modal-btn" onClick={sendWhatsApp}>
+              فتح واتساب
+            </button>
           </div>
         </div>
       )}
@@ -426,19 +588,29 @@ function Select({ label, value, onChange, options }) {
   );
 }
 
+function cleanPhone(value = '') {
+  return value.replace(/[^\d+]/g, '').trim();
+}
+
 function needsPayment(sub) {
-  return ['hours', 'sessions', 'custom'].includes(sub.paymentType) && Number(sub.usedUnits) >= Number(sub.unitLimit || 0);
+  const limit = Number(sub.unitLimit || 0);
+  const used = Number(sub.usedUnits || 0);
+  const reminderAt = Number(sub.reminderAt || 0);
+  const remaining = limit - used;
+
+  return ['hours', 'sessions', 'custom'].includes(sub.paymentType) && remaining <= reminderAt;
 }
 
 function paymentTypeLabel(type) {
   const labels = {
     monthly: 'شهري',
     weekly: 'أسبوعي',
-    hours: 'بعد ساعات',
-    sessions: 'بعد حصص',
+    hours: 'بالساعات',
+    sessions: 'بالحصص',
     once: 'مرة واحدة',
     free: 'مجاني',
     custom: 'مخصص'
   };
+
   return labels[type] || 'مخصص';
 }
