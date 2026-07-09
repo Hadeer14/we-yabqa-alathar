@@ -167,12 +167,13 @@ export default function Students() {
       return;
     }
     const studentCode = generateStudentCode();
-    const password = generatePassword();
+    const parentPassword = generateParentPassword();
 
     const payload = {
       ...form,
       studentCode,
-      password,
+      parentUsername: studentCode,
+      parentPassword,
       name: form.name.trim(),
       fatherWhatsapp: cleanPhone(form.fatherWhatsapp),
       motherWhatsapp: cleanPhone(form.motherWhatsapp),
@@ -194,9 +195,7 @@ export default function Students() {
 
       await addDoc(collection(db, 'students'), {
         ...payload,
-        studentCode,
-        parentUsername: studentCode,
-        parentPassword,
+       
         status: 'active',
         createdAt: serverTimestamp()
       });
