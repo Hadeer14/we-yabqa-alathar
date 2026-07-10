@@ -19,11 +19,14 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
+  limit,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
-  updateDoc
+  updateDoc,
+  where,
 } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import './Students.css';
@@ -166,13 +169,75 @@ export default function Students() {
       alert('اكتبي رقم واتساب الأب أو الأم على الأقل، ويفضل بصيغة دولية مثل +2010...');
       return;
     }
-    const studentCode = generateStudentCode();
-    const parentPassword = generateParentPassword();
+    const fatherPhone = cleanPhone(form.fatherWhatsapp || "");
+    const motherPhone = cleanPhone(form.motherWhatsapp || "");
+
+    const familyPhone =
+      form.preferredContact === "mother"
+        ? motherPhone
+        : form.preferredContact === "father"
+          ? fatherPhone
+          : fatherPhone || motherPhone;
+
+    if (!familyPhone) {
+      alert("من فضلك اكتبي رقم تواصل صالح للأسرة");
+      return;
+    }
+    const familyQuery = query(
+      collection(db, "families"),
+      where("familyPhone", "==", familyPhone),
+      limit(1)
+    );
+
+    const familySnapshot = await getDocs(familyQuery);
+    let familyId = "";
+    let familyCode = "";
+    let parentUsername = "";
+    let parentPassword = "";
+
+    if (!familySnapshot.empty) {
+      const familyDoc = familySnapshot.docs[0];
+      const family = familyDoc.data();
+
+      familyId = familyDoc.id;
+      familyCode = family.familyCode || "";
+      parentUsername = family.parentUsername || "";
+      parentPassword = family.parentPassword || "";
+    } else {
+      familyCode = `FAM-${generateStudentCode().replace("WB-", "")}`;
+      parentUsername = familyCode;
+      parentPassword = generateParentPassword();
+
+      const newFamilyRef = await addDoc(collection(db, "families"), {
+        familyCode,
+        familyPhone,
+        parentUsername,
+        parentPassword,
+
+        fatherName: form.fatherName?.trim() || "",
+        fatherWhatsapp: fatherPhone,
+        motherName: form.motherName?.trim() || "",
+        motherWhatsapp: motherPhone,
+
+        preferredContact: form.preferredContact || "both",
+        status: "active",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      familyId = newFamilyRef.id;
+    }
+    const studentCode =
+      editingStudent?.studentCode || generateStudentCode();
+
 
     const payload = {
       ...form,
       studentCode,
-      parentUsername: studentCode,
+      familyId,
+      familyCode,
+      familyPhone,
+      parentUsername,
       parentPassword,
       name: form.name.trim(),
       fatherWhatsapp: cleanPhone(form.fatherWhatsapp),
@@ -190,8 +255,7 @@ export default function Students() {
     if (editingStudent) {
       await updateDoc(doc(db, 'students', editingStudent.id), payload);
     } else {
-      const studentCode = generateStudentCode();
-      const parentPassword = generateParentPassword();
+
 
       await addDoc(collection(db, 'students'), {
         ...payload,
@@ -286,8 +350,8 @@ export default function Students() {
 
 نتمنى نشوفكم قريبًا بإذن الله، ونسعد بعودة ${student.name} للأكاديمية.`;
   }
-   function loginMessage(student) {
-  return `السلام عليكم ورحمة الله وبركاته 🌱
+  function loginMessage(student) {
+    return `السلام عليكم ورحمة الله وبركاته 🌱
 
 تم إنشاء حساب خاص بكم على منصة أكاديمية ويبقى الأثر.
 
@@ -306,7 +370,7 @@ ${student.parentPassword || 'غير متوفرة'}
 من خلال الحساب يمكنكم متابعة الحضور، الاشتراك، الساعات المتبقية، الخطة، التقارير والتنبيهات.
 
 نسعد بمتابعتكم، ونسأل الله أن يبارك في أبنائنا جميعًا 🤍`;
-}
+  }
 
 
   function paymentMessage(student, sub) {
