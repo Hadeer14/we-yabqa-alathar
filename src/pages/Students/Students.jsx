@@ -65,6 +65,8 @@ const emptyForm = {
   motherName: '',
   motherWhatsapp: '',
   preferredContact: 'both',
+  todayUpdate: "",
+  todayUpdatePublished: false,
   subscriptions: [{ ...emptySubscription, id: Date.now() }]
 };
 
@@ -618,6 +620,37 @@ ${student.parentPassword || 'غير متوفرة'}
                 </div>
               </div>
             )}
+
+            <label className="modal-field full">
+              <span>ملخص اليوم لولي الأمر</span>
+
+              <textarea
+                value={form.todayUpdate || ""}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    todayUpdate: e.target.value,
+                  })
+                }
+                placeholder="اكتبي هنا الطفل أخذ إيه اليوم..."
+                rows={4}
+              />
+            </label>
+
+            <label className="modal-field full">
+              <span>إظهار الملخص لولي الأمر</span>
+
+              <input
+                type="checkbox"
+                checked={form.todayUpdatePublished === true}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    todayUpdatePublished: e.target.checked,
+                  })
+                }
+              />
+            </label>
 
             <div className="modal-actions">
               <button type="button" className="soft-modal-btn" onClick={() => setStep(Math.max(1, step - 1))}>السابق</button>

@@ -122,8 +122,14 @@ export default function ParentPortal({ user, onLogout }) {
         <ParentBox
           icon={CalendarDays}
           title="ملخص اليوم"
-          value="لم تنشر الأكاديمية تحديث اليوم بعد"
+          value={
+            student.todayUpdatePublished === true &&
+              student.todayUpdate?.trim()
+              ? student.todayUpdate
+              : "لم تنشر الأكاديمية تحديث اليوم بعد"
+          }
         />
+
       </section>
     </main>
   );
