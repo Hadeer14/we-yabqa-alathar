@@ -19,7 +19,7 @@ export default function Login({ onParentLogin }) {
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 950);
     return () => clearTimeout(timer);
-  }, []);const handleLogin = async () => {
+  }, []); const handleLogin = async () => {
     setError("");
     setLoading(true);
 
@@ -38,22 +38,40 @@ export default function Login({ onParentLogin }) {
       }
 
       // غير كده اعتبره ولي أمر
-      const q = query(
-        collection(db, "students"),
+      const familyQuery = query(
+        collection(db, "families"),
         where("parentUsername", "==", loginValue),
         where("parentPassword", "==", passwordValue),
         limit(1)
       );
 
-      const result = await getDocs(q);
+      const familyResult = await getDocs(familyQuery);
 
-      if (!result.empty) {
-        const student = {
-          id: result.docs[0].id,
-          ...result.docs[0].data(),
+      if (!familyResult.empty) {
+        const familyDoc = familyResult.docs[0];
+
+        const family = {
+          id: familyDoc.id,
+          ...familyDoc.data(),
         };
 
-        onParentLogin(student);
+        const studentsQuery = query(
+          collection(db, "students"),
+          where("familyId", "==", familyDoc.id)
+        );
+
+        const studentsResult = await getDocs(studentsQuery);
+
+        const children = studentsResult.docs.map((studentDoc) => ({
+          id: studentDoc.id,
+          ...studentDoc.data(),
+        }));
+
+        onParentLogin({
+          family,
+          children,
+        });
+
         return;
       }
 
@@ -63,7 +81,7 @@ export default function Login({ onParentLogin }) {
     } finally {
       setLoading(false);
     }
-  };return (
+  }; return (
     <main className="login-page" dir="rtl">
       {showSplash && (
         <div className="splash-screen">

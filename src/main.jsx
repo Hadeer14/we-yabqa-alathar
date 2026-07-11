@@ -35,7 +35,7 @@ function App() {
   if (parentSession) {
     return (
       <ParentPortal
-        user={{ student: parentSession }}
+        user={ parentSession }
         onLogout={handleLogout}
       />
     );
